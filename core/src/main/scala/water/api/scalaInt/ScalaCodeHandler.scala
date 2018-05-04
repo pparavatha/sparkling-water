@@ -19,16 +19,39 @@ package water.api.scalaInt
 import org.apache.spark.SparkContext
 import org.apache.spark.h2o.H2OContext
 import org.apache.spark.repl.h2o.H2OInterpreter
-import water.Iced
+import water._
+import water.api.schemas3.KeyV3
 import water.api.{Handler, HandlerFactory, RestApiContext}
 import water.exceptions.H2ONotFoundArgumentException
 
 import scala.collection.concurrent.TrieMap
 
+
+class KeyedVoidV3(key: Key[KeyedVoid]) extends KeyV3[Iced[KeyedVoid], KeyedVoidV3, KeyedVoid](key) {
+  def this() = this(null.asInstanceOf[Key[KeyedVoid]])
+}
+
+class KeyedVoid extends Keyed[KeyedVoid]{
+  override def makeSchema(): Class[KeyedVoidV3] = classOf[KeyedVoidV3]
+}
+
+
 /**
   * Handler for all Scala related endpoints
   */
 class ScalaCodeHandler(val sc: SparkContext, val h2oContext: H2OContext) extends Handler {
+
+
+  class ScalaCodeJob(s: ScalaCodeV3) extends H2O.H2OCountedCompleter {
+    override def compute2(): Unit = {
+      val intp = mapIntr(s.session_id)
+      s.status = intp.runCode(s.code).toString
+      s.response = intp.interpreterResponse
+      s.output = intp.consoleOutput
+      tryComplete()
+    }
+  }
+
 
   val intrPoolSize = h2oContext.getConf.scalaIntDefaultNum
   val freeInterpreters = new java.util.concurrent.ConcurrentLinkedQueue[H2OInterpreter]
@@ -41,10 +64,9 @@ class ScalaCodeHandler(val sc: SparkContext, val h2oContext: H2OContext) extends
     if (s.session_id == -1 || !mapIntr.isDefinedAt(s.session_id)) {
       throw new H2ONotFoundArgumentException("Session does not exists. Create session using the address /3/scalaint!")
     }
-    val intp = mapIntr(s.session_id)
-    s.status = intp.runCode(s.code).toString
-    s.response = intp.interpreterResponse
-    s.output = intp.consoleOutput
+    val job = new Job[KeyedVoid](Key.make[KeyedVoid](), classOf[KeyedVoid].getName, "ScalaCodeExecution")
+    job.start(new ScalaCodeJob(s), s.code.length)
+    job.get()
     s
   }
 
