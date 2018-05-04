@@ -27,11 +27,11 @@ import water.exceptions.H2ONotFoundArgumentException
 import scala.collection.concurrent.TrieMap
 
 
-class KeyedVoidV3(key: Key[KeyedVoid]) extends KeyV3[Iced[KeyedVoid], KeyedVoidV3, KeyedVoid](key) {
-  def this() = this(null.asInstanceOf[Key[KeyedVoid]])
+class KeyedVoidV3(key: Key[ScalaCodeEmptyResult]) extends KeyV3[Iced[ScalaCodeEmptyResult], KeyedVoidV3, ScalaCodeEmptyResult](key) {
+  def this() = this(null.asInstanceOf[Key[ScalaCodeEmptyResult]])
 }
 
-class KeyedVoid extends Keyed[KeyedVoid]{
+class ScalaCodeEmptyResult extends Keyed[ScalaCodeEmptyResult]{
   override def makeSchema(): Class[KeyedVoidV3] = classOf[KeyedVoidV3]
 }
 
@@ -64,7 +64,7 @@ class ScalaCodeHandler(val sc: SparkContext, val h2oContext: H2OContext) extends
     if (s.session_id == -1 || !mapIntr.isDefinedAt(s.session_id)) {
       throw new H2ONotFoundArgumentException("Session does not exists. Create session using the address /3/scalaint!")
     }
-    val job = new Job[KeyedVoid](Key.make[KeyedVoid](), classOf[KeyedVoid].getName, "ScalaCodeExecution")
+    val job = new Job[ScalaCodeEmptyResult](Key.make[ScalaCodeEmptyResult](), classOf[ScalaCodeEmptyResult].getName, "ScalaCodeExecution")
     job.start(new ScalaCodeJob(s), s.code.length)
     job.get()
     s
