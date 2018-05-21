@@ -21,6 +21,7 @@ import java.io._
 
 import ai.h2o.mojos.runtime.MojoPipeline
 import ai.h2o.mojos.runtime.frame.MojoColumn
+import ai.h2o.mojos.runtime.frame.MojoColumn.Type
 import ai.h2o.mojos.runtime.readers.MojoPipelineReaderBackendFactory
 import org.apache.hadoop.fs.Path
 import org.apache.spark.annotation.Since
@@ -54,6 +55,18 @@ class H2OMOJOPipelineModel(val mojoData: Array[Byte], override val uid: String)
 
   case class Mojo2Prediction(preds: List[String])
 
+  private def prepareBooleans(colType: Type, colData: Any): Any = {
+    if (colData == null) {
+      null
+    } else if (colType.isnumeric && colData.toString.toLowerCase() == "true") {
+      1
+    } else if (colType.isnumeric && colData.toString.toLowerCase() == "false") {
+      0
+    } else {
+      colData
+    }
+  }
+
   private val modelUdf = (names: Array[String]) =>
     udf[Mojo2Prediction, Row] {
       r: Row =>
@@ -61,18 +74,23 @@ class H2OMOJOPipelineModel(val mojoData: Array[Byte], override val uid: String)
         val builder = m.getInputFrameBuilder
         val rowBuilder = builder.getMojoRowBuilder
         val filtered = r.getValuesMap[Any](names).filter { case (n, _) => m.getInputMeta.contains(n) }
+
         filtered.foreach {
           case (colName, colData) =>
-            val data = if (colData == null) {
-              null
-            } else if (m.getInputMeta.getColumnType(colName).isnumeric && colData.toString.toLowerCase() == "true") {
-              1.toString
-            } else if (m.getInputMeta.getColumnType(colName).isnumeric && colData.toString.toLowerCase() == "false") {
-              0.toString
-            } else {
-              colData.toString
+            val prepared = prepareBooleans(m.getInputMeta.getColumnType(colName), colData)
+
+            prepared match {
+              case null => rowBuilder.setValue(colName, null)
+              case v: Boolean => rowBuilder.setBool(colName, v)
+              case v: Int => rowBuilder.setInt(colName, v)
+              case v: Long => rowBuilder.setLong(colName, v)
+              case v: Float => rowBuilder.setFloat(colName, v)
+              case v: Double => rowBuilder.setDouble(colName, v)
+              case v : String => if (m.getInputMeta.getColumnType(colName).javatype == "string") rowBuilder.setStr(colName, v) else rowBuilder.setValue(colName, v)
+              case v: java.sql.Timestamp => rowBuilder.setDateTime(colName, v.toString)
+              case v: java.sql.Date => rowBuilder.setDateTime(colName, v.toString)
+              case v: Any => rowBuilder.setValue(colName, v.toString)
             }
-            rowBuilder.setValue(colName.toString, data)
         }
 
         builder.addRow(rowBuilder)
