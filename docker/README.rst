@@ -3,16 +3,11 @@ Docker Support
 
 Create DockerFile
 -----------------
+At the project root folder
 
-Docker file can be created by calling
-``./gradlew createDockerFile -PsparkVersion=version``, where ``version``
-is spark version for which to generate docker file. Latest corresponding
-sparkling water release to be used within docker image is determined
-automatically based on spark version.
+    $ gradle createDockerFile -x test
 
-The gradle task can be called without the parameter as
-``./gradlew createDockerFile``, which creates docker file for spark
-version defined in gradle.properties file.
+DockerFile will be created in the directory docker/sparkling-water/base/
 
 Container requirements
 ----------------------
@@ -21,30 +16,26 @@ To run Sparkling Water in the container, the host has to provide a
 machine with at least 5G of total memory. If this is not met, Sparkling
 Water scripts print warning but still attempt to run.
 
-Building a container
---------------------
+Building a container image
+--------------------------
 
-.. code:: bash
+    $ cd docker/sparkling-water/base/
 
-    $ cd docker && ./build.sh
+    $ docker build -t sparkling-water-base:v0.1 -f Dockerfile .
 
 Run bash inside container
 -------------------------
 
-.. code:: bash
+    $ docker run -i --name sparkling-water-base-instance-v0.1 -t sparkling-water-base:v0.1  /bin/bash
 
-    $ cd docker && docker run  -i -t sparkling-water-base /bin/bash
 
 Run Sparkling Shell inside container
 ------------------------------------
 
-.. code:: bash
-
-    $ cd docker && docker run -i -t --rm sparkling-water-base bin/sparkling-shell 
+    $ docker run -i --name sparkling-water-base-instance-v0.1 -t sparkling-water-base:v0.1  bin/sparkling-shell
 
 Running examples in container
 -----------------------------
 
-.. code:: bash
+    $ docker run -i --name sparkling-water-base-instance-v0.1 -t sparkling-water-base:v0.1  bin/run-example.sh
 
-    $ cd docker && docker run -i -t --rm sparkling-water-base bin/run-example.sh

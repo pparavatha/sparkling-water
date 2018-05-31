@@ -22,15 +22,15 @@ task createDockerfile(type: Dockerfile) {
 
     maintainer """h2o.ai "h2o.ai" """
 
-    // Install Java 7
+    // Install Java 8
     runCommand """\\
                 |   apt-get -q -y update && \\
                 |   apt-get -y install software-properties-common && \\
                 |   add-apt-repository ppa:webupd8team/java && \\
                 |   apt-get -q -y update && \\
-                |   ( echo oracle-java7-installer shared/accepted-oracle-license-v1-1 select true | /usr/bin/debconf-set-selections ) && \\
-                |   apt-get -y install oracle-java7-installer && \\
-                |   apt-get -y install oracle-java7-set-default && \\
+                |   ( echo oracle-java8-installer shared/accepted-oracle-license-v1-1 select true | /usr/bin/debconf-set-selections ) && \\
+                |   apt-get -y install oracle-java8-installer && \\
+                |   apt-get -y install oracle-java8-set-default && \\
                 |   apt-get clean
                """.stripMargin()
 
